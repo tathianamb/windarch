@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f1923">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WindArch">
+<title>WindArch — Classificador de Arquiteturas</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:      #0f1923;
+    --surface: #162030;
+    --card:    #1c2c3e;
+    --border:  #243447;
+    --text:    #e8f0f8;
+    --muted:   #5a7a95;
+    --accent:  #f97316;
+
+    --transformer:  #a78bfa; --transformer-bg:  #1e1040;
+    --rnn:          #38bdf8; --rnn-bg:          #0c2233;
+    --gnn:          #34d399; --gnn-bg:          #002918;
+    --ensemble:     #fbbf24; --ensemble-bg:     #231a00;
+    --hdl:          #f472b6; --hdl-bg:          #2d0a1e;
+    --hml:          #fb923c; --hml-bg:          #2d1000;
+    --hfl:          #4ade80; --hfl-bg:          #002b10;
+    --hdecomp:      #22d3ee; --hdecomp-bg:      #001f2e;
+    --estatistico:  #e879f9; --estatistico-bg:  #2a0030;
+    --fisico:       #a3e635; --fisico-bg:       #1a2600;
+    --outro:        #94a3b8; --outro-bg:        #141e2a;
+    --dash:         #64748b; --dash-bg:         #0f1923;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overscroll-behavior: none; }
+
+  /* ── Header ── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: var(--bg); border-bottom: 1px solid var(--border);
+    padding: 14px 20px 12px; display: flex; align-items: center; gap: 12px;
+  }
+  .logo { font-family: 'Space Mono', monospace; font-size: 17px; font-weight: 700; color: var(--accent); }
+  .logo span { color: var(--text); }
+  .hdr-count { margin-left: auto; font-size: 11px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  main { padding: 20px; max-width: 960px; margin: 0 auto; }
+
+  /* ── Modal ── */
+  .overlay { position: fixed; inset: 0; background: #000a; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .overlay.hidden { display: none; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 28px 24px; max-width: 420px; width: 100%; }
+  .modal h2 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .modal p  { font-size: 13px; color: var(--muted); margin-bottom: 18px; line-height: 1.6; }
+  .modal a  { color: var(--accent); }
+  .modal input { width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; font-size: 14px; color: var(--text); font-family: 'Space Mono', monospace; outline: none; margin-bottom: 12px; }
+  .modal input:focus { border-color: var(--accent); }
+  .modal input::placeholder { color: var(--muted); }
+  .modal .btn-save { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 12px; font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'DM Sans', sans-serif; }
+  .modal .hint { font-size: 11px; color: var(--muted); text-align: center; margin-top: 10px; }
+
+  /* ── API bar ── */
+  .api-bar { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 18px; }
+  .api-ok { font-size: 12px; color: #34d399; }
+  .btn-change { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 5px 12px; font-size: 11px; color: var(--muted); cursor: pointer; margin-left: auto; font-family: 'DM Sans', sans-serif; }
+
+  /* ── Drop zone ── */
+  .dropzone { border: 2px dashed var(--border); border-radius: 16px; padding: 36px 24px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; background: var(--surface); margin-bottom: 18px; }
+  .dropzone:hover, .dropzone.active { border-color: var(--accent); background: #1a1200; }
+  .dropzone .icon  { font-size: 36px; margin-bottom: 10px; }
+  .dropzone .label { font-size: 15px; font-weight: 600; }
+  .dropzone .hint  { font-size: 12px; color: var(--muted); margin-top: 5px; }
+
+  /* ── Progress ── */
+  .progress-wrap { margin-bottom: 16px; display: none; }
+  .progress-wrap.show { display: block; }
+  .progress-top { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-bottom: 6px; font-family: 'Space Mono', monospace; }
+  .progress-bar  { height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width .4s; }
+
+  /* ── Stats grid ── */
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 18px; }
+  @media(min-width:600px){ .stats { grid-template-columns: repeat(4,1fr); } }
+  @media(min-width:800px){ .stats { grid-template-columns: repeat(6,1fr); } }
+  .stat-card { border-radius: 12px; padding: 10px 12px; cursor: pointer; transition: transform .15s; border: 2px solid transparent; }
+  .stat-card:active { transform: scale(0.96); }
+  .stat-card.active { border-color: currentColor; }
+  .stat-num   { font-family: 'Space Mono', monospace; font-size: 22px; font-weight: 700; line-height: 1; }
+  .stat-label { font-size: 10px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .4px; line-height: 1.3; }
+
+  .f-transformer { background: var(--transformer-bg); color: var(--transformer); }
+  .f-rnn         { background: var(--rnn-bg);         color: var(--rnn); }
+  .f-gnn         { background: var(--gnn-bg);         color: var(--gnn); }
+  .f-ensemble    { background: var(--ensemble-bg);    color: var(--ensemble); }
+  .f-hdl         { background: var(--hdl-bg);         color: var(--hdl); }
+  .f-hml         { background: var(--hml-bg);         color: var(--hml); }
+  .f-hfl         { background: var(--hfl-bg);         color: var(--hfl); }
+  .f-hdecomp     { background: var(--hdecomp-bg);     color: var(--hdecomp); }
+  .f-estatistico { background: var(--estatistico-bg); color: var(--estatistico); }
+  .f-fisico      { background: var(--fisico-bg);      color: var(--fisico); }
+  .f-outro       { background: var(--outro-bg);       color: var(--outro); }
+  .f-dash        { background: var(--dash-bg);        color: var(--dash); border: 1px solid var(--border); }
+  .f-pending     { background: var(--card);           color: var(--muted); border: 1px solid var(--border); }
+
+  /* ── Controls ── */
+  .controls { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+  .btn { border: none; border-radius: 10px; padding: 10px 18px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: 'DM Sans', sans-serif; transition: opacity .15s, transform .1s; }
+  .btn:active   { transform: scale(0.96); }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btn-start    { background: var(--accent); color: #fff; }
+  .btn-pause    { background: #f59e0b; color: #1a0f00; }
+  .btn-download { background: #34d399; color: #001a0e; }
+  .btn-clr      { background: var(--card); color: var(--muted); }
+  .search { flex: 1; min-width: 160px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 13px; color: var(--text); font-family: 'DM Sans', sans-serif; outline: none; }
+  .search:focus { border-color: var(--accent); }
+  .search::placeholder { color: var(--muted); }
+  .count-label { font-size: 12px; color: var(--muted); font-family: 'Space Mono', monospace; }
+
+  /* ── Table ── */
+  .table-wrap  { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .table-inner { overflow-x: auto; max-height: 55vh; overflow-y: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  thead { position: sticky; top: 0; z-index: 2; }
+  th { background: var(--card); padding: 10px 12px; text-align: left; color: var(--muted); font-weight: 600; font-size: 10px; text-transform: uppercase; letter-spacing: .4px; border-bottom: 1px solid var(--border); }
+  td { padding: 8px 12px; border-top: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: var(--card); }
+  .idx { color: var(--muted); font-family: 'Space Mono', monospace; font-size: 10px; width: 40px; }
+  .title-cell  { max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 35%; }
+  .model-cell  { max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 20%; color: var(--muted); font-family: 'Space Mono', monospace; font-size: 11px; }
+
+  .badge { display: inline-block; border-radius: 99px; padding: 2px 8px; font-size: 10px; font-weight: 600; white-space: nowrap; }
+
+  .table-footer { padding: 10px 16px; border-top: 1px solid var(--border); color: var(--muted); font-size: 11px; text-align: center; font-family: 'Space Mono', monospace; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #ef4444; color: #fff; border-radius: 12px; padding: 12px 20px; font-size: 13px; font-weight: 600; display: none; z-index: 999; max-width: 88vw; text-align: center; box-shadow: 0 8px 32px #ef444455; }
+  .toast.show { display: block; }
+</style>
+</head>
+<body>
+
+<!-- API Key Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>⚙️ WindArch</h2>
+    <p>Cole sua chave Gemini para classificar arquiteturas de modelos.<br>
+       Acesse <a href="https://aistudio.google.com" target="_blank">aistudio.google.com</a> → <strong>Get API key</strong>.</p>
+    <input type="password" id="modal-key" placeholder="AIza..." autocomplete="off">
+    <button class="btn-save" onclick="saveKey()">Salvar e continuar</button>
+    <div class="hint">A chave fica salva apenas neste dispositivo.</div>
+  </div>
+</div>
+
+<header>
+  <div class="logo">Wind<span>Arch</span> <span style="font-size:11px;color:var(--muted);font-weight:400">⚙️</span></div>
+  <span class="hdr-count" id="hdr-count">nenhum arquivo</span>
+</header>
+
+<main>
+  <div class="api-bar" id="api-bar">
+    <span class="api-ok">✓ Gemini configurado</span>
+    <button class="btn-change" onclick="changeKey()">Trocar chave</button>
+  </div>
+
+  <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+    <input type="file" id="file-input" accept=".csv" style="display:none">
+    <div class="icon">⚙️</div>
+    <div class="label" id="dz-label">Toque para carregar o CSV</div>
+    <div class="hint">Colunas esperadas: title, authors, year, journal, abstract, doi, categoria</div>
+  </div>
+
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-top">
+      <span id="progress-label">Classificando...</span>
+      <span id="progress-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width:0%"></div></div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats" id="stats" style="display:none">
+    <div class="stat-card f-transformer" id="card-transformer" onclick="toggleFilter('Transformer')">
+      <div class="stat-num" id="n-transformer">0</div>
+      <div class="stat-label">Transformer</div>
+    </div>
+    <div class="stat-card f-rnn" id="card-rnn" onclick="toggleFilter('Rede Neural')">
+      <div class="stat-num" id="n-rnn">0</div>
+      <div class="stat-label">Rede Neural</div>
+    </div>
+    <div class="stat-card f-gnn" id="card-gnn" onclick="toggleFilter('Graph Neural Network')">
+      <div class="stat-num" id="n-gnn">0</div>
+      <div class="stat-label">GNN</div>
+    </div>
+    <div class="stat-card f-ensemble" id="card-ensemble" onclick="toggleFilter('Ensemble')">
+      <div class="stat-num" id="n-ensemble">0</div>
+      <div class="stat-label">Ensemble</div>
+    </div>
+    <div class="stat-card f-hdl" id="card-hdl" onclick="toggleFilter('Híbrido Deep Learning')">
+      <div class="stat-num" id="n-hdl">0</div>
+      <div class="stat-label">Híb. Deep Learning</div>
+    </div>
+    <div class="stat-card f-hml" id="card-hml" onclick="toggleFilter('Híbrido Estatístico-ML')">
+      <div class="stat-num" id="n-hml">0</div>
+      <div class="stat-label">Híb. Estat.-ML</div>
+    </div>
+    <div class="stat-card f-hfl" id="card-hfl" onclick="toggleFilter('Híbrido Físico-ML')">
+      <div class="stat-num" id="n-hfl">0</div>
+      <div class="stat-label">Híb. Físico-ML</div>
+    </div>
+    <div class="stat-card f-hdecomp" id="card-hdecomp" onclick="toggleFilter('Híbrido Decomposição-ML')">
+      <div class="stat-num" id="n-hdecomp">0</div>
+      <div class="stat-label">Híb. Decomp.-ML</div>
+    </div>
+    <div class="stat-card f-estatistico" id="card-estatistico" onclick="toggleFilter('Estatístico')">
+      <div class="stat-num" id="n-estatistico">0</div>
+      <div class="stat-label">Estatístico</div>
+    </div>
+    <div class="stat-card f-fisico" id="card-fisico" onclick="toggleFilter('Físico')">
+      <div class="stat-num" id="n-fisico">0</div>
+      <div class="stat-label">Físico</div>
+    </div>
+    <div class="stat-card f-outro" id="card-outro" onclick="toggleFilter('Outro')">
+      <div class="stat-num" id="n-outro">0</div>
+      <div class="stat-label">Outro</div>
+    </div>
+    <div class="stat-card f-dash" id="card-dash" onclick="toggleFilter('-')">
+      <div class="stat-num" id="n-dash">0</div>
+      <div class="stat-label">Sem modelo</div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls" id="controls" style="display:none">
+    <button class="btn btn-start"    id="btn-start"    onclick="startClassification()">▶ Classificar com IA</button>
+    <button class="btn btn-pause"    id="btn-pause"    onclick="pauseClassification()" style="display:none">⏸ Pausar</button>
+    <button class="btn btn-download" id="btn-download" onclick="downloadCSV()" disabled>⬇ Baixar CSV</button>
+    <input  class="search" id="search" placeholder="Buscar título..." oninput="renderTable()">
+    <button class="btn btn-clr"      id="btn-clr"      onclick="clearFilter()" style="display:none">✕ filtro</button>
+    <span   class="count-label"     id="visible-count"></span>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap" id="table-wrap" style="display:none">
+    <div class="table-inner">
+      <table>
+        <thead><tr>
+          <th class="idx">#</th>
+          <th style="width:35%">Título</th>
+          <th style="width:18%">Família</th>
+          <th style="width:22%">Modelo Específico</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="table-footer" id="table-footer" style="display:none"></div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── Constants ──────────────────────────────────────────────────────────────
+const LS_KEY       = 'windclass_gemini_key'; // mesma chave do WindClass
+const LS_MODEL_KEY = 'windclass_model';
+const BATCH        = 10;
+
+const FAMILIES = [
+  'Transformer','Rede Neural','Graph Neural Network','Ensemble',
+  'Híbrido Deep Learning','Híbrido Estatístico-ML','Híbrido Físico-ML',
+  'Híbrido Decomposição-ML','Estatístico','Físico','Outro','-'
+];
+
+const FAM_CSS = {
+  'Transformer':           'f-transformer',
+  'Rede Neural':           'f-rnn',
+  'Graph Neural Network':  'f-gnn',
+  'Ensemble':              'f-ensemble',
+  'Híbrido Deep Learning': 'f-hdl',
+  'Híbrido Estatístico-ML':'f-hml',
+  'Híbrido Físico-ML':     'f-hfl',
+  'Híbrido Decomposição-ML':'f-hdecomp',
+  'Estatístico':           'f-estatistico',
+  'Físico':                'f-fisico',
+  'Outro':                 'f-outro',
+  '-':                     'f-dash',
+};
+
+const FAM_STAT_ID = {
+  'Transformer':'transformer','Rede Neural':'rnn',
+  'Graph Neural Network':'gnn','Ensemble':'ensemble',
+  'Híbrido Deep Learning':'hdl','Híbrido Estatístico-ML':'hml',
+  'Híbrido Físico-ML':'hfl','Híbrido Decomposição-ML':'hdecomp',
+  'Estatístico':'estatistico','Físico':'fisico','Outro':'outro','-':'dash'
+};
+
+const SYSTEM_PROMPT = `Você é um especialista em aprendizado de máquina aplicado à previsão de energia eólica.
+Sua tarefa é analisar o título e o abstract de artigos científicos e classificar o MODELO PROPOSTO pelo artigo.
+
+Leia o abstract COMPLETO com atenção antes de classificar — as informações mais importantes frequentemente aparecem no meio ou no final.
+
+Classifique em EXATAMENTE uma das seguintes famílias:
+- "Transformer": modelos baseados em atenção (Transformer, PatchTST, Informer, Mamba, iTransformer, Autoformer, etc.)
+- "Rede Neural": LSTM, GRU, BiLSTM, CNN, TCN, ConvLSTM, RNN, MLP, Elman e variantes puras sem decomposição
+- "Graph Neural Network": GNN, GCN, DCRNN, AGCRN, GraphSAGE e variantes
+- "Ensemble": Random Forest, XGBoost, LightGBM, AdaBoost, Gradient Boosting, Stacking e métodos de conjunto
+- "Híbrido Deep Learning": combinações de duas ou mais redes neurais/transformers sem decomposição central (ex: CNN+LSTM, BiLSTM+Transformer)
+- "Híbrido Estatístico-ML": combinação de modelos estatísticos clássicos com ML (ex: Weibull+GBM, ARIMA+LSTM, Bayesian+NN)
+- "Híbrido Físico-ML": combinação de modelos físicos/equações com ML (ex: PINN+Informer, SDE+NN, NWP+DL)
+- "Híbrido Decomposição-ML": decomposição de sinal como parte central da arquitetura + qualquer modelo preditivo (ex: EMD+LSTM, VMD+GRU, CEEMDAN+Transformer, Wavelet+CNN+LSTM)
+- "Estatístico": modelos puramente estatísticos (ARIMA, SARIMAX, Bayesian DLM, regressão linear, etc.)
+- "Físico": modelos puramente físicos (NWP, WRF, CFD, simulação física)
+- "Outro": arquiteturas que não se encaixam nas categorias acima (KAN, Quantum NN, GAM, otimização robusta, etc.)
+- "-": artigos sem modelo proposto claro (revisões sistemáticas, estudos comparativos puros, análises de recurso eólico)
+
+Para o modelo_especifico, extraia o nome exato do modelo proposto pelo artigo (ex: "DBANN", "CEEMDAN+VMD+Transformer+GRU", "PINN+Informer"). Se não houver modelo proposto, use "-".
+
+Responda APENAS com JSON válido, sem markdown. Formato exato:
+[{"index":0,"familia":"Híbrido Decomposição-ML","modelo_especifico":"CEEMDAN+VMD+Transformer+GRU"},{"index":1,"familia":"Rede Neural","modelo_especifico":"LSTM"}]`;
+
+// ── State ──────────────────────────────────────────────────────────────────
+let allRows      = [];
+let activeFilter = null;
+let stopFlag     = false;
+let activeModel  = localStorage.getItem(LS_MODEL_KEY) || null;
+
+const GEMINI_MODELS = [
+  'gemini-3-flash-preview',
+  'gemini-3.1-flash-lite-preview',
+  'gemini-2.5-flash',
+  'gemini-2.5-flash-lite',
+  'gemini-2.0-flash',
+];
+
+// ── API Key ────────────────────────────────────────────────────────────────
+function loadKey() {
+  const k = localStorage.getItem(LS_KEY) || '';
+  if (k.startsWith('AIza') && k.length > 20) {
+    document.getElementById('overlay').classList.add('hidden');
+    document.getElementById('api-bar').style.display = 'flex';
+  } else {
+    document.getElementById('overlay').classList.remove('hidden');
+    document.getElementById('api-bar').style.display = 'none';
+  }
+}
+function saveKey() {
+  const k = document.getElementById('modal-key').value.trim();
+  if (!k.startsWith('AIza') || k.length < 20) { showToast('Chave inválida.'); return; }
+  localStorage.setItem(LS_KEY, k);
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('api-bar').style.display = 'flex';
+}
+function changeKey() {
+  document.getElementById('modal-key').value = '';
+  document.getElementById('overlay').classList.remove('hidden');
+}
+document.getElementById('modal-key').addEventListener('keydown', e => { if (e.key === 'Enter') saveKey(); });
+loadKey();
+
+// ── CSV ────────────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/);
+  const headers = parseLine(lines[0]);
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const cols = parseLine(lines[i]);
+    const row = {};
+    headers.forEach((h, j) => row[h.trim()] = cols[j] || '');
+    rows.push(row);
+  }
+  return rows;
+}
+function parseLine(line) {
+  const r = []; let cur = '', q = false;
+  for (let i = 0; i < line.length; i++) {
+    if (line[i]==='"' && line[i+1]==='"') { cur+='"'; i++; }
+    else if (line[i]==='"') { q=!q; }
+    else if (line[i]===',' && !q) { r.push(cur); cur=''; }
+    else cur += line[i];
+  }
+  r.push(cur); return r;
+}
+
+document.getElementById('file-input').addEventListener('change', e => {
+  const file = e.target.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    allRows = parseCSV(ev.target.result).map(r => ({ ...r, modelo_familia: null, modelo_especifico: null }));
+    document.getElementById('dz-label').textContent    = `✅ ${allRows.length} artigos carregados`;
+    document.getElementById('hdr-count').textContent   = `${allRows.length} artigos`;
+    document.getElementById('stats').style.display     = 'grid';
+    document.getElementById('controls').style.display  = 'flex';
+    document.getElementById('table-wrap').style.display= 'block';
+    updateStats(); renderTable();
+  };
+  reader.readAsText(file, 'utf-8');
+});
+
+const dz = document.getElementById('dropzone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('active'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('active'));
+dz.addEventListener('drop', e => {
+  e.preventDefault(); dz.classList.remove('active');
+  const file = e.dataTransfer.files[0];
+  if (file?.name.endsWith('.csv')) {
+    const dt = new DataTransfer(); dt.items.add(file);
+    document.getElementById('file-input').files = dt.files;
+    document.getElementById('file-input').dispatchEvent(new Event('change'));
+  }
+});
+
+// ── Gemini ─────────────────────────────────────────────────────────────────
+async function tryModel(model, key, body) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+    { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) }
+  );
+  if (!res.ok) { const e = await res.json(); throw new Error(e?.error?.message || `Erro ${res.status}`); }
+  return res.json();
+}
+
+async function classifyBatch(batch, startIdx) {
+  const key = localStorage.getItem(LS_KEY) || '';
+
+  const prompt = `${SYSTEM_PROMPT}
+
+Artigos para classificar:
+${batch.map((r, j) => `[${j}] Título: ${r.title}
+Abstract: ${r.abstract || ''}`).join('\n\n---\n\n')}`;
+
+  const body = {
+    contents: [{ parts: [{ text: prompt }] }],
+    generationConfig: { temperature: 0, maxOutputTokens: 2048 }
+  };
+
+  let data;
+  if (activeModel) {
+    data = await tryModel(activeModel, key, body);
+  } else {
+    let lastError = '';
+    for (const model of GEMINI_MODELS) {
+      try {
+        document.getElementById('progress-label').textContent = `Testando ${model}…`;
+        data = await tryModel(model, key, body);
+        activeModel = model;
+        localStorage.setItem(LS_MODEL_KEY, model);
+        break;
+      } catch(e) { lastError = e.message; continue; }
+    }
+    if (!data) throw new Error(`Nenhum modelo disponível. Último erro: ${lastError}`);
+  }
+
+  const text  = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
+  const clean = text.replace(/```json|```/g, '').trim();
+  JSON.parse(clean).forEach(r => {
+    const idx = startIdx + r.index;
+    if (allRows[idx]) {
+      allRows[idx].modelo_familia    = r.familia || '-';
+      allRows[idx].modelo_especifico = r.modelo_especifico || '-';
+    }
+  });
+}
+
+// ── Classification control ─────────────────────────────────────────────────
+async function startClassification() {
+  const key = localStorage.getItem(LS_KEY) || '';
+  if (!key.startsWith('AIza')) { showToast('Configure sua chave Gemini primeiro.'); return; }
+  if (!allRows.length) { showToast('Carregue um CSV primeiro.'); return; }
+
+  stopFlag = false;
+  document.getElementById('btn-start').style.display = 'none';
+  document.getElementById('btn-pause').style.display = 'inline-block';
+  document.getElementById('progress-wrap').classList.add('show');
+
+  const start = allRows.findIndex(r => r.modelo_familia === null);
+  if (start === -1) return;
+
+  try {
+    for (let i = start; i < allRows.length; i += BATCH) {
+      if (stopFlag) break;
+      await classifyBatch(allRows.slice(i, i + BATCH), i);
+      const done = allRows.filter(r => r.modelo_familia !== null).length;
+      const pct  = Math.round(done / allRows.length * 100);
+      document.getElementById('progress-fill').style.width  = pct + '%';
+      document.getElementById('progress-pct').textContent   = pct + '%';
+      document.getElementById('progress-label').textContent = `Classificando… ${done}/${allRows.length}`;
+      document.getElementById('btn-download').disabled = false;
+      updateStats(); renderTable();
+      if (i + BATCH < allRows.length) await sleep(500);
+    }
+  } catch(e) { showToast('Erro: ' + e.message); }
+
+  document.getElementById('btn-pause').style.display = 'none';
+  document.getElementById('btn-start').style.display = 'inline-block';
+
+  const allDone = allRows.every(r => r.modelo_familia !== null);
+  if (allDone) {
+    document.getElementById('btn-start').textContent = '✓ Concluído';
+    document.getElementById('btn-start').disabled    = true;
+    document.getElementById('progress-label').textContent = `✅ ${allRows.length} artigos classificados`;
+  } else {
+    document.getElementById('btn-start').textContent = '▶ Continuar';
+  }
+}
+
+function pauseClassification() {
+  stopFlag = true;
+  document.getElementById('btn-pause').style.display = 'none';
+  document.getElementById('btn-start').style.display = 'inline-block';
+  document.getElementById('btn-start').textContent   = '▶ Continuar';
+  document.getElementById('progress-label').textContent = '⏸ Pausado';
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── Stats & render ─────────────────────────────────────────────────────────
+function updateStats() {
+  const counts = {};
+  FAMILIES.forEach(f => counts[f] = 0);
+  allRows.forEach(r => { if (r.modelo_familia && counts[r.modelo_familia] !== undefined) counts[r.modelo_familia]++; });
+  Object.entries(FAM_STAT_ID).forEach(([fam, id]) => {
+    const el = document.getElementById(`n-${id}`);
+    if (el) el.textContent = counts[fam] || 0;
+  });
+  // active card
+  Object.entries(FAM_STAT_ID).forEach(([fam, id]) => {
+    document.getElementById(`card-${id}`)?.classList.remove('active');
+  });
+  if (activeFilter && FAM_STAT_ID[activeFilter]) {
+    document.getElementById(`card-${FAM_STAT_ID[activeFilter]}`)?.classList.add('active');
+  }
+}
+
+function renderTable() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  const visible = allRows.map((r, i) => ({ ...r, _i: i })).filter(r => {
+    const matchF = !activeFilter || r.modelo_familia === activeFilter;
+    const matchQ = !q || (r.title || '').toLowerCase().includes(q);
+    return matchF && matchQ;
+  });
+  document.getElementById('visible-count').textContent = `${visible.length} / ${allRows.length}`;
+  const MAX = 300;
+  document.getElementById('tbody').innerHTML = visible.slice(0, MAX).map(r => {
+    const fam = r.modelo_familia;
+    const cls = fam ? (FAM_CSS[fam] || 'f-outro') : 'f-pending';
+    const lbl = fam || '…';
+    return `<tr>
+      <td class="idx">${r._i + 1}</td>
+      <td class="title-cell" title="${esc(r.title)}">${esc(r.title)}</td>
+      <td><span class="badge ${cls}">${esc(lbl)}</span></td>
+      <td class="model-cell" title="${esc(r.modelo_especifico || '')}">${esc(r.modelo_especifico || '…')}</td>
+    </tr>`;
+  }).join('');
+  const footer = document.getElementById('table-footer');
+  if (visible.length > MAX) {
+    footer.style.display = 'block';
+    footer.textContent = `mostrando ${MAX} de ${visible.length} — use a busca para refinar`;
+  } else footer.style.display = 'none';
+}
+
+function toggleFilter(fam) {
+  activeFilter = activeFilter === fam ? null : fam;
+  document.getElementById('btn-clr').style.display = activeFilter ? 'inline-block' : 'none';
+  updateStats(); renderTable();
+}
+function clearFilter() {
+  activeFilter = null;
+  document.getElementById('btn-clr').style.display = 'none';
+  updateStats(); renderTable();
+}
+function esc(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Download ───────────────────────────────────────────────────────────────
+function downloadCSV() {
+  // Detect original columns from first row
+  const originalCols = Object.keys(allRows[0] || {}).filter(k => k !== 'modelo_familia' && k !== 'modelo_especifico');
+  const headers = [...originalCols, 'modelo_familia', 'modelo_especifico'];
+  const lines = [headers.map(h => `"${h}"`).join(',')];
+  allRows.forEach(r => {
+    const vals = headers.map(h => `"${String(r[h] || '').replace(/"/g, '""')}"`);
+    lines.push(vals.join(','));
+  });
+  const encoded = btoa(unescape(encodeURIComponent(lines.join('\n'))));
+  const a = document.createElement('a');
+  a.href = `data:text/csv;charset=utf-8;base64,${encoded}`;
+  a.download = 'artigos-windarch.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// ── PWA manifest ───────────────────────────────────────────────────────────
+const mBlob = new Blob([JSON.stringify({
+  name: "WindArch — Classificador de Arquiteturas",
+  short_name: "WindArch",
+  start_url: ".", display: "standalone",
+  background_color: "#0f1923", theme_color: "#0f1923",
+  icons: [{ src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='80' fill='%230f1923'/%3E%3Ctext x='256' y='340' font-size='260' text-anchor='middle'%3E⚙️%3C/text%3E%3C/svg%3E", sizes: "512x512", type: "image/svg+xml", purpose: "any maskable" }]
+})], { type: 'application/json' });
+const mLink = document.createElement('link');
+mLink.rel = 'manifest'; mLink.href = URL.createObjectURL(mBlob);
+document.head.appendChild(mLink);
+</script>
+</body>
+</html>
