@@ -32,6 +32,7 @@
     --fisico:       #a3e635; --fisico-bg:       #1a2600;
     --outro:        #94a3b8; --outro-bg:        #141e2a;
     --dash:         #64748b; --dash-bg:         #0f1923;
+    --hattn:        #f43f5e; --hattn-bg:        #2d0010;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overscroll-behavior: none; }
@@ -95,6 +96,7 @@
   .f-gnn         { background: var(--gnn-bg);         color: var(--gnn); }
   .f-ensemble    { background: var(--ensemble-bg);    color: var(--ensemble); }
   .f-hdl         { background: var(--hdl-bg);         color: var(--hdl); }
+  .f-hattn        { background: var(--hattn-bg);       color: var(--hattn); }
   .f-hml         { background: var(--hml-bg);         color: var(--hml); }
   .f-hfl         { background: var(--hfl-bg);         color: var(--hfl); }
   .f-hdecomp     { background: var(--hdecomp-bg);     color: var(--hdecomp); }
@@ -201,6 +203,10 @@
       <div class="stat-num" id="n-hdl">0</div>
       <div class="stat-label">Híb. Deep Learning</div>
     </div>
+    <div class="stat-card f-hattn" id="card-hattn" onclick="toggleFilter('Híbrido Atenção')">
+      <div class="stat-num" id="n-hattn">0</div>
+      <div class="stat-label">Híb. Atenção</div>
+    </div>
     <div class="stat-card f-hml" id="card-hml" onclick="toggleFilter('Híbrido Estatístico-ML')">
       <div class="stat-num" id="n-hml">0</div>
       <div class="stat-label">Híb. Estat.-ML</div>
@@ -268,7 +274,7 @@ const BATCH        = 10;
 
 const FAMILIES = [
   'Transformer','Rede Neural','Graph Neural Network','Ensemble',
-  'Híbrido Deep Learning','Híbrido Estatístico-ML','Híbrido Físico-ML',
+  'Híbrido Deep Learning','Híbrido Atenção','Híbrido Estatístico-ML','Híbrido Físico-ML',
   'Híbrido Decomposição-ML','Estatístico','Físico','Outro','-'
 ];
 
@@ -278,6 +284,7 @@ const FAM_CSS = {
   'Graph Neural Network':  'f-gnn',
   'Ensemble':              'f-ensemble',
   'Híbrido Deep Learning': 'f-hdl',
+  'Híbrido Atenção':        'f-hattn',
   'Híbrido Estatístico-ML':'f-hml',
   'Híbrido Físico-ML':     'f-hfl',
   'Híbrido Decomposição-ML':'f-hdecomp',
@@ -290,7 +297,7 @@ const FAM_CSS = {
 const FAM_STAT_ID = {
   'Transformer':'transformer','Rede Neural':'rnn',
   'Graph Neural Network':'gnn','Ensemble':'ensemble',
-  'Híbrido Deep Learning':'hdl','Híbrido Estatístico-ML':'hml',
+  'Híbrido Deep Learning':'hdl','Híbrido Atenção':'hattn','Híbrido Estatístico-ML':'hml',
   'Híbrido Físico-ML':'hfl','Híbrido Decomposição-ML':'hdecomp',
   'Estatístico':'estatistico','Físico':'fisico','Outro':'outro','-':'dash'
 };
@@ -305,7 +312,8 @@ Classifique em EXATAMENTE uma das seguintes famílias:
 - "Rede Neural": LSTM, GRU, BiLSTM, CNN, TCN, ConvLSTM, RNN, MLP, Elman e variantes puras sem decomposição
 - "Graph Neural Network": GNN, GCN, DCRNN, AGCRN, GraphSAGE e variantes
 - "Ensemble": Random Forest, XGBoost, LightGBM, AdaBoost, Gradient Boosting, Stacking e métodos de conjunto
-- "Híbrido Deep Learning": combinações de duas ou mais redes neurais/transformers sem decomposição central (ex: CNN+LSTM, BiLSTM+Transformer)
+- "Híbrido Deep Learning": combinações de duas ou mais redes neurais/transformers sem mecanismo de atenção explícito e sem decomposição central (ex: CNN+LSTM, BiLSTM+GRU)
+- "Híbrido Atenção": redes neurais com mecanismo de atenção explícito mas que NÃO são um Transformer completo (ex: LSTM+Attention, CNN+BiGRU+Attention, BiLSTM+Self-Attention)
 - "Híbrido Estatístico-ML": combinação de modelos estatísticos clássicos com ML (ex: Weibull+GBM, ARIMA+LSTM, Bayesian+NN)
 - "Híbrido Físico-ML": combinação de modelos físicos/equações com ML (ex: PINN+Informer, SDE+NN, NWP+DL)
 - "Híbrido Decomposição-ML": decomposição de sinal como parte central da arquitetura + qualquer modelo preditivo (ex: EMD+LSTM, VMD+GRU, CEEMDAN+Transformer, Wavelet+CNN+LSTM)
